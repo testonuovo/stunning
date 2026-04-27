@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Oreste AI - Assistente Vocale Italiano Intelligente</title>
+
+<meta name="description" content="Oreste AI è un assistente vocale italiano con meteo, ora, data e apertura siti.">
+<meta name="description" content="Oreste AI è un assistente vocale italiano che apre siti, risponde ai comandi vocali e usa Google per cercare informazioni.">
+<meta name="keywords" content="Oreste AI, assistente vocale, AI italiano, comando vocale, apri siti">
+<meta name="robots" content="index, follow">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: blue;
+    color: white;
+    text-align: center;
+}
+
+#home { padding: 40px 20px; }
+#assistant { display:none; padding:20px; }
+
+.button, .ai {
+    background:red;
+    color:white;
+    border:none;
+    padding:12px;
+    margin-top:10px;
+    border-radius:20px;
+    width:200px;
+    cursor:pointer;
+}
+
+.button:hover, .ai:hover {
+    background:yellow;
+}
+
+input {
+    padding:10px;
+    width:60%;
+    border-radius:10px;
+    border:none;
+    margin-top:10px;
+}
+
+.box {
+    margin-top:20px;
+    padding:15px;
+    background:rgba(0,0,0,0.3);
+    border-radius:15px;
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+  <h1>Oreste AI</h1>
+
+  <nav>
+    <a href='/' style='color:yellow;text-decoration:none;'>Home</a> |
+    <a href='/about' style='color:yellow;text-decoration:none;'>Chi siamo</a> |
+    <a href='/funzioni' style='color:yellow;text-decoration:none;'>Funzioni</a> |
+    <a href='/contatti' style='color:yellow;text-decoration:none;'>Contatti</a>
+  </nav>
+</header>
+
+<!-- HOME -->
+<div id="home">
+
+    <h1>🎤 Oreste AI</h1>
+
+    <button class="button" onclick="startApp()">Avvia Assistente</button>
+
+    <div class="box">
+        <p id="time"></p>
+        <p id="date"></p>
+        <p id="tomorrow"></p>
+        <p id="weather">🌤 Meteo: caricamento...</p>
+    </div>
+
+</div>
+
+<!-- ASSISTENTE -->
+<div id="assistant">
+
+    <h1>Oreste AI Attivo 🎤</h1>
+
+    <button class="ai" onclick="startVoice()">Parla</button>
+
+    <input type="text" id="textInput" placeholder="Scrivi un comando...">
+    <button class="ai" onclick="handleText()">Invia</button>
+
+    <p id="output"></p>
+
+    <button class="ai" onclick="backHome()">⬅ Torna alla Home</button>
+
+</div>
+
+<script>
+
+/* NAV */
+function startApp(){
+    document.getElementById("home").style.display="none";
+    document.getElementById("assistant").style.display="block";
+}
+
+function backHome(){
+    document.getElementById("assistant").style.display="none";
+    document.getElementById("home").style.display="block";
+}
+
+/* DATA / ORA */
+function updateDateTime(){
+
+    const now = new Date();
+
+    const h = String(now.getHours()).padStart(2,"0");
+    const m = String(now.getMinutes()).padStart(2,"0");
+
+    document.getElementById("time").innerText =
+        "🕒 Ora: " + h + ":" + m;
+
+    document.getElementById("date").innerText =
+        "📅 Oggi: " + now.toLocaleDateString("it-IT");
+
+    let domani = new Date();
+    domani.setDate(now.getDate()+1);
+
+    document.getElementById("tomorrow").innerText =
+        "📆 Domani: " + domani.toLocaleDateString("it-IT");
+}
+
+updateDateTime();
+setInterval(updateDateTime,1000);
+
+/* METEO */
+let weatherText = "non disponibile";
+
+fetch("https://api.open-meteo.com/v1/forecast?latitude=40.85&longitude=14.5&current_weather=true")
+.then(r => r.json())
+.then(data => {
+    weatherText = data.current_weather.temperature + "°C";
+    document.getElementById("weather").innerText =
+        "🌤 Meteo: " + weatherText;
+});
+
+/* VOCE */
+function speak(text){
+    window.speechSynthesis.cancel();
+    let s = new SpeechSynthesisUtterance(text);
+    s.lang = "it-IT";
+    window.speechSynthesis.speak(s);
+}
+
+/* SITI */
+const sites = {
+    "google":"https://www.google.com",
+    "youtube":"https://www.youtube.com",
+    "canva":"https://www.canva.com",
+    "facebook":"https://www.facebook.com",
+    "instagram":"https://www.instagram.com",
+    "tiktok":"https://www.tiktok.com",
+    "gmail":"https://mail.google.com",
+    "la vita in viaggio":"https://lavitainviaggio.altervista.org",
+    "non ti arrendere":"https://nontiarrendere.altervista.org"
+};
+
+function openSite(text){
+
+    text = text.toLowerCase().trim();
+
+    for(let key in sites){
+        if(text.includes(key)){
+            window.open(sites[key], "_blank");
+            return true;
+        }
+    }
+
+    // URL tipo google.it
+    if(text.includes(".")){
+        let url = text.startsWith("http") ? text : "https://" + text;
+        window.open(url, "_blank");
+        return true;
+    }
+
+    return false;
+}
+
+/* CERVELLO AI */
+function handleCommand(text){
+
+    text = text.toLowerCase();
+
+    const now = new Date();
+    let domani = new Date();
+    domani.setDate(now.getDate()+1);
+
+    /* ================= APRI SITI ================= */
+    if(text.startsWith("apri ")){
+        let query = text.replace("apri ","");
+
+        if(openSite(query)){
+            speak("Apro " + query);
+        } else {
+            speak("Cerco " + query + " su Google");
+            window.open("https://www.google.com/search?q=" + query, "_blank");
+        }
+        return;
+    }
+
+    /* ================= CERCA SU GOOGLE ================= */
+    if(text.startsWith("cerca ")){
+        let query = text.replace("cerca ","");
+        speak("Cerco " + query + " su Google");
+        window.open("https://www.google.com/search?q=" + query, "_blank");
+        return;
+    }
+
+    /* ================= METEO ================= */
+    if(text.includes("meteo")){
+        speak("Il meteo è " + weatherText);
+        return;
+    }
+
+    /* ================= ORA ================= */
+    if(text.includes("ora")){
+        const h = String(now.getHours()).padStart(2,"0");
+        const m = String(now.getMinutes()).padStart(2,"0");
+        speak("Sono le " + h + ":" + m);
+        return;
+    }
+
+    /* ================= OGGI ================= */
+    if(text.includes("oggi")){
+        speak("La data di oggi è " + now.toLocaleDateString("it-IT"));
+        return;
+    }
+
+    /* ================= DOMANI ================= */
+    if(text.includes("domani")){
+        speak("La data di domani è " + domani.toLocaleDateString("it-IT"));
+        return;
+    }
+
+    /* ================= SALUTO ================= */
+    if(text.includes("ciao")){
+        speak("Ciao! Sono Oreste AI");
+        return;
+    }
+
+    speak("Non ho capito");
+}
+/* VOCE */
+function startVoice(){
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ speak("Microfono non supportato"); return; }
+
+    let rec = new SR();
+    rec.lang = "it-IT";
+    rec.start();
+
+    rec.onresult = (e)=>{
+        let text = e.results[0][0].transcript;
+        document.getElementById("output").innerText = text;
+        handleCommand(text);
+    };
+}
+
+/* TESTO */
+function handleText(){
+    let text = document.getElementById("textInput").value;
+    document.getElementById("output").innerText = text;
+    handleCommand(text);
+}
+
+</script>
+
+</body>
+</html>
